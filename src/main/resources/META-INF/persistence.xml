@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="3.0" xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
+    <persistence-unit name="GestionStockPU" transaction-type="JTA">
+        <jta-data-source>jdbc/GestionStockDS</jta-data-source>
+        <class>com.gestionstock.entity.Marque</class>
+        <class>com.gestionstock.entity.Produit</class>
+        <class>com.gestionstock.entity.Stock</class>
+        <class>com.gestionstock.entity.Utilisateur</class>
+        <class>com.gestionstock.entity.ElementDeStock</class>
+        <class>com.gestionstock.entity.ListeDeStock</class>
+        <properties>
+            <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
+            <property name="jakarta.persistence.sql-load-script-source" value="META-INF/sql/data.sql"/>
+            <property name="eclipselink.logging.level" value="FINE"/>
+            <property name="eclipselink.logging.parameters" value="true"/>
+            <property name="eclipselink.ddl-generation.output-mode" value="database"/>
+        </properties>
+    </persistence-unit>
+</persistence> 
