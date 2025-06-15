@@ -4,23 +4,43 @@ import jakarta.ejb.Stateless;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import com.gestionstock.entity.Stock;
-import com.gestionstock.entity.ElementDeStock;
-import com.gestionstock.entity.ListeDeStock;
+import com.gestionstock.entity.Produit;
 import java.util.List;
+import java.util.Date;
 import java.util.ArrayList;
 
 @Stateless
 public class ServiceStock {
     
+    private static final int SEUIL_ALERTE_STOCK = 5;
+    
     @PersistenceContext
     private EntityManager em;
     
-    public boolean creerStock(String nom) {
+    public List<Stock> listerStocks() {
+        return em.createQuery("SELECT s FROM Stock s ORDER BY s.date DESC", Stock.class)
+                 .getResultList();
+    }
+    
+    public List<Stock> getDerniersMouvements(int limit) {
+        return em.createQuery("SELECT s FROM Stock s ORDER BY s.date DESC", Stock.class)
+                 .setMaxResults(limit)
+                 .getResultList();
+    }
+    
+    public boolean entreeStock(String referenceProduit, int quantite) {
         try {
-            if (em.find(Stock.class, nom) != null) {
+            Produit produit = em.find(Produit.class, referenceProduit);
+            if (produit == null) {
                 return false;
             }
-            Stock stock = new Stock(nom);
+            
+            Stock stock = new Stock();
+            stock.setProduit(produit);
+            stock.setQuantite(quantite);
+            stock.setType("ENTREE");
+            stock.setDate(new Date());
+            
             em.persist(stock);
             return true;
         } catch (Exception e) {
@@ -28,114 +48,84 @@ public class ServiceStock {
         }
     }
     
-    public boolean entreeStock(String nomStock, String refProduit, int quantite) {
+    public boolean sortieStock(String referenceProduit, int quantite) {
         try {
-            Stock stock = em.find(Stock.class, nomStock);
-            if (stock == null) {
+            Produit produit = em.find(Produit.class, referenceProduit);
+            if (produit == null) {
                 return false;
             }
             
-            ListeDeStock liste = stock.getListeDeStock();
-            ElementDeStock element = liste.trouverElement(refProduit);
-            
-            if (element == null) {
-                element = new ElementDeStock(refProduit, quantite);
-                liste.ajouterElement(element);
-            } else {
-                element.ajouterQuantite(quantite);
+            // Vérifier si le stock est suffisant
+            int stockActuel = getStockProduit(referenceProduit);
+            if (stockActuel < quantite) {
+                return false;
             }
             
-            em.merge(stock);
+            Stock stock = new Stock();
+            stock.setProduit(produit);
+            stock.setQuantite(-quantite); // Négatif pour une sortie
+            stock.setType("SORTIE");
+            stock.setDate(new Date());
+            
+            em.persist(stock);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
     
-    public boolean sortieStock(String nomStock, String refProduit, int quantite) {
+    public int getStockProduit(String referenceProduit) {
         try {
-            Stock stock = em.find(Stock.class, nomStock);
-            if (stock == null) {
-                return false;
-            }
-            
-            ListeDeStock liste = stock.getListeDeStock();
-            ElementDeStock element = liste.trouverElement(refProduit);
-            
-            if (element == null || !element.retirerQuantite(quantite)) {
-                return false;
-            }
-            
-            em.merge(stock);
-            return true;
+            return em.createQuery(
+                "SELECT COALESCE(SUM(s.quantite), 0) FROM Stock s WHERE s.produit.reference = :ref", 
+                Long.class)
+                .setParameter("ref", referenceProduit)
+                .getSingleResult()
+                .intValue();
         } catch (Exception e) {
-            return false;
+            return 0;
         }
     }
     
-    public boolean modifierQuantite(String nomStock, String refProduit, int nouvelleQuantite) {
-        try {
-            Stock stock = em.find(Stock.class, nomStock);
-            if (stock == null) {
-                return false;
+    public List<Produit> getProduitsStockBas() {
+        List<Produit> produitsStockBas = new ArrayList<>();
+        List<Produit> tousProduits = em.createQuery("SELECT p FROM Produit p", Produit.class)
+                                     .getResultList();
+        
+        for (Produit produit : tousProduits) {
+            int stockActuel = getStockProduit(produit.getReference());
+            if (stockActuel <= SEUIL_ALERTE_STOCK) {
+                produitsStockBas.add(produit);
             }
-            
-            ListeDeStock liste = stock.getListeDeStock();
-            ElementDeStock element = liste.trouverElement(refProduit);
-            
-            if (element == null) {
-                element = new ElementDeStock(refProduit, nouvelleQuantite);
-                liste.ajouterElement(element);
-            } else {
-                element.setQuantite(nouvelleQuantite);
-            }
-            
-            em.merge(stock);
-            return true;
-        } catch (Exception e) {
-            return false;
         }
+        
+        return produitsStockBas;
     }
     
-    public List<ElementDeStock> consulterStock(String nomStock) {
-        try {
-            Stock stock = em.find(Stock.class, nomStock);
-            if (stock == null) {
-                return new ArrayList<>();
-            }
-            return stock.getListeDeStock().getListe();
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+    public boolean isStockBas(String referenceProduit) {
+        return getStockProduit(referenceProduit) <= SEUIL_ALERTE_STOCK;
     }
     
-    public List<ElementDeStock> consulterStockGlobal() {
-        try {
-            List<Stock> stocks = em.createQuery("SELECT s FROM Stock s", Stock.class)
-                                 .getResultList();
-            
-            List<ElementDeStock> stockGlobal = new ArrayList<>();
-            for (Stock stock : stocks) {
-                for (ElementDeStock element : stock.getListeDeStock().getListe()) {
-                    ElementDeStock elementGlobal = stockGlobal.stream()
-                            .filter(e -> e.getRefProduit().equals(element.getRefProduit()))
-                            .findFirst()
-                            .orElse(new ElementDeStock(element.getRefProduit(), 0));
-                    
-                    if (!stockGlobal.contains(elementGlobal)) {
-                        stockGlobal.add(elementGlobal);
-                    }
-                    elementGlobal.ajouterQuantite(element.getQuantite());
-                }
-            }
-            return stockGlobal;
-        } catch (Exception e) {
-            return new ArrayList<>();
-        }
+    public long getNombreTotalProduits() {
+        return em.createQuery("SELECT COUNT(p) FROM Produit p", Long.class)
+                 .getSingleResult();
     }
     
-    public List<Stock> tousLesStocks() {
-        return em.createQuery("SELECT s FROM Stock s", Stock.class)
-                 .getResultList();
+    public long getNombreProduitsEnStock() {
+        return em.createQuery(
+            "SELECT COUNT(DISTINCT s.produit) FROM Stock s WHERE s.quantite > 0", 
+            Long.class)
+            .getSingleResult();
+    }
+    
+    public long getNombreProduitsStockBas() {
+        return getProduitsStockBas().size();
+    }
+    
+    public double getValeurTotaleStock() {
+        return em.createQuery(
+            "SELECT COALESCE(SUM(s.quantite * p.prix), 0) FROM Stock s JOIN s.produit p", 
+            Double.class)
+            .getSingleResult();
     }
 } 

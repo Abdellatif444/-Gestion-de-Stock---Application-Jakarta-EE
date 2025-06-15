@@ -29,10 +29,10 @@ public class HomeServlet extends HttpServlet {
         // Récupération des statistiques
         request.setAttribute("totalProduits", serviceProduit.listerProduits().size());
         request.setAttribute("totalMarques", serviceMarque.listerMarques().size());
-        request.setAttribute("totalStocks", serviceStock.tousLesStocks().size());
+        request.setAttribute("totalStocks", serviceStock.listerStocks().size());
         
         // Récupération des derniers mouvements
-        request.setAttribute("derniersMouvements", serviceStock.tousLesStocks());
+        request.setAttribute("derniersMouvements", serviceStock.getDerniersMouvements(5));
         
         // Affichage de la page d'accueil
         request.getRequestDispatcher("/WEB-INF/views/home.jsp").forward(request, response);

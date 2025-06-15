@@ -8,8 +8,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
-    <div class="container mt-5">
-        <div class="row justify-content-center">
+    <div class="container">
+        <div class="row justify-content-center mt-5">
             <div class="col-md-6">
                 <div class="card shadow">
                     <div class="card-header">
@@ -17,27 +17,39 @@
                     </div>
                     <div class="card-body">
                         <c:if test="${not empty error}">
-                            <div class="alert alert-danger">${error}</div>
+                            <div class="alert alert-danger" role="alert">
+                                ${error}
+                            </div>
                         </c:if>
                         
-                        <form action="${pageContext.request.contextPath}/login" method="post">
+                        <c:if test="${not empty success}">
+                            <div class="alert alert-success" role="alert">
+                                ${success}
+                            </div>
+                        </c:if>
+                        
+                        <form action="${pageContext.request.contextPath}/login" method="post" class="needs-validation" novalidate>
                             <div class="mb-3">
-                                <label for="username" class="form-label">Nom d'utilisateur</label>
-                                <input type="text" class="form-control" id="username" name="username" required>
+                                <label for="login" class="form-label">Login</label>
+                                <input type="text" class="form-control" id="login" name="login" required>
+                                <div class="invalid-feedback">
+                                    Le login est requis
+                                </div>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="password" class="form-label">Mot de passe</label>
-                                <input type="password" class="form-control" id="password" name="password" required>
+                                <label for="motDePasse" class="form-label">Mot de passe</label>
+                                <input type="password" class="form-control" id="motDePasse" name="motDePasse" required>
+                                <div class="invalid-feedback">
+                                    Le mot de passe est requis
+                                </div>
                             </div>
                             
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary">Se connecter</button>
-                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Se connecter</button>
                         </form>
                         
                         <div class="mt-3 text-center">
-                            <p>Pas encore de compte ? <a href="${pageContext.request.contextPath}/register">S'inscrire</a></p>
+                            <a href="${pageContext.request.contextPath}/register">Pas encore inscrit ? Créer un compte</a>
                         </div>
                     </div>
                 </div>

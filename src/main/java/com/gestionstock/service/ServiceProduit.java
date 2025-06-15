@@ -54,7 +54,8 @@ public class ServiceProduit {
         }
     }
     
-    public boolean modifierProduit(String reference, String denomination, double prix, double poids, double volume) {
+    public boolean modifierProduit(String reference, String denomination, 
+                                 double prix, double poids, double volume) {
         try {
             Produit produit = em.find(Produit.class, reference);
             if (produit != null) {
@@ -80,9 +81,5 @@ public class ServiceProduit {
         return em.createQuery("SELECT p FROM Produit p WHERE p.marque.nom = :nomMarque", Produit.class)
                  .setParameter("nomMarque", nomMarque)
                  .getResultList();
-    }
-
-    public Produit trouverProduit(String reference) {
-        return em.find(Produit.class, reference);
     }
 } 

@@ -22,17 +22,26 @@ public class StockServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
+        String uri = request.getRequestURI();
+        String context = request.getContextPath();
+        if (uri.startsWith(context + "/api/stocks/produit/")) {
+            String ref = uri.substring((context + "/api/stocks/produit/").length());
+            int stock = serviceStock.getStockProduit(ref);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"quantite\":" + stock + "}");
+            return;
+        }
         String action = request.getRequestURI().substring(request.getContextPath().length());
         
         switch (action) {
             case "/stocks":
-                afficherListeStocks(request, response);
+                afficherStocks(request, response);
                 break;
             case "/stocks/entree":
-                afficherFormulaireEntree(request, response);
+                afficherFormEntree(request, response);
                 break;
             case "/stocks/sortie":
-                afficherFormulaireSortie(request, response);
+                afficherFormSortie(request, response);
                 break;
             default:
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -45,78 +54,100 @@ public class StockServlet extends HttpServlet {
         String action = request.getRequestURI().substring(request.getContextPath().length());
         
         switch (action) {
-            case "/stocks/creer":
-                creerStock(request, response);
-                break;
             case "/stocks/entree":
-                entreeStock(request, response);
+                traiterEntreeStock(request, response);
                 break;
             case "/stocks/sortie":
-                sortieStock(request, response);
+                traiterSortieStock(request, response);
                 break;
             default:
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
     }
     
-    private void afficherListeStocks(HttpServletRequest request, HttpServletResponse response) 
+    private void afficherStocks(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        request.setAttribute("stocks", serviceStock.tousLesStocks());
-        request.setAttribute("stockGlobal", serviceStock.consulterStockGlobal());
-        request.getRequestDispatcher("/WEB-INF/views/stocks/liste.jsp")
-               .forward(request, response);
-    }
-    
-    private void afficherFormulaireEntree(HttpServletRequest request, HttpServletResponse response) 
-            throws ServletException, IOException {
-        request.setAttribute("stocks", serviceStock.tousLesStocks());
+        request.setAttribute("stocks", serviceStock.listerStocks());
         request.setAttribute("produits", serviceProduit.listerProduits());
-        request.getRequestDispatcher("/WEB-INF/views/stocks/entree.jsp")
-               .forward(request, response);
+        request.setAttribute("serviceStock", serviceStock);
+        request.getRequestDispatcher("/WEB-INF/views/stocks/liste.jsp").forward(request, response);
     }
     
-    private void afficherFormulaireSortie(HttpServletRequest request, HttpServletResponse response) 
+    private void afficherFormEntree(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        request.setAttribute("stocks", serviceStock.tousLesStocks());
         request.setAttribute("produits", serviceProduit.listerProduits());
-        request.getRequestDispatcher("/WEB-INF/views/stocks/sortie.jsp")
-               .forward(request, response);
+        request.setAttribute("serviceStock", serviceStock);
+        request.getRequestDispatcher("/WEB-INF/views/stocks/content/entree.jsp").forward(request, response);
     }
     
-    private void creerStock(HttpServletRequest request, HttpServletResponse response) 
-            throws IOException {
-        String nom = request.getParameter("nom");
-        
-        if (serviceStock.creerStock(nom)) {
-            response.sendRedirect(request.getContextPath() + "/stocks");
-        } else {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Impossible de créer le stock");
-        }
+    private void afficherFormSortie(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        request.setAttribute("produits", serviceProduit.listerProduits());
+        request.setAttribute("serviceStock", serviceStock);
+        request.getRequestDispatcher("/WEB-INF/views/stocks/content/sortie.jsp").forward(request, response);
     }
     
-    private void entreeStock(HttpServletRequest request, HttpServletResponse response) 
-            throws IOException {
-        String nomStock = request.getParameter("stock");
-        String refProduit = request.getParameter("produit");
-        int quantite = Integer.parseInt(request.getParameter("quantite"));
-        
-        if (serviceStock.entreeStock(nomStock, refProduit, quantite)) {
-            response.sendRedirect(request.getContextPath() + "/stocks");
-        } else {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Impossible d'effectuer l'entrée en stock");
+    private void traiterEntreeStock(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            String reference = request.getParameter("produit");
+            int quantite = Integer.parseInt(request.getParameter("quantite"));
+            
+            if (reference == null || reference.trim().isEmpty()) {
+                throw new IllegalArgumentException("La référence du produit est requise");
+            }
+            
+            if (quantite <= 0) {
+                throw new IllegalArgumentException("La quantité doit être supérieure à 0");
+            }
+            
+            if (serviceStock.entreeStock(reference, quantite)) {
+                request.getSession().setAttribute("successMessage", "Entrée en stock effectuée avec succès");
+            } else {
+                request.getSession().setAttribute("errorMessage", "Erreur lors de l'entrée en stock");
+            }
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("errorMessage", "La quantité doit être un nombre valide");
+        } catch (IllegalArgumentException e) {
+            request.getSession().setAttribute("errorMessage", e.getMessage());
         }
+        
+        response.sendRedirect(request.getContextPath() + "/stocks");
     }
     
-    private void sortieStock(HttpServletRequest request, HttpServletResponse response) 
-            throws IOException {
-        String nomStock = request.getParameter("stock");
-        String refProduit = request.getParameter("produit");
-        int quantite = Integer.parseInt(request.getParameter("quantite"));
-        
-        if (serviceStock.sortieStock(nomStock, refProduit, quantite)) {
-            response.sendRedirect(request.getContextPath() + "/stocks");
-        } else {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Impossible d'effectuer la sortie de stock");
+    private void traiterSortieStock(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        try {
+            String reference = request.getParameter("produit");
+            int quantite = Integer.parseInt(request.getParameter("quantite"));
+            
+            if (reference == null || reference.trim().isEmpty()) {
+                throw new IllegalArgumentException("La référence du produit est requise");
+            }
+            
+            if (quantite <= 0) {
+                throw new IllegalArgumentException("La quantité doit être supérieure à 0");
+            }
+            
+            int stockActuel = serviceStock.getStockProduit(reference);
+            if (stockActuel < quantite) {
+                request.getSession().setAttribute("errorMessage", 
+                    "Stock insuffisant. Stock actuel : " + stockActuel);
+                response.sendRedirect(request.getContextPath() + "/stocks/sortie");
+                return;
+            }
+            
+            if (serviceStock.sortieStock(reference, quantite)) {
+                request.getSession().setAttribute("successMessage", "Sortie de stock effectuée avec succès");
+            } else {
+                request.getSession().setAttribute("errorMessage", "Erreur lors de la sortie de stock");
+            }
+        } catch (NumberFormatException e) {
+            request.getSession().setAttribute("errorMessage", "La quantité doit être un nombre valide");
+        } catch (IllegalArgumentException e) {
+            request.getSession().setAttribute("errorMessage", e.getMessage());
         }
+        
+        response.sendRedirect(request.getContextPath() + "/stocks");
     }
 } 

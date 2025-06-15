@@ -5,30 +5,32 @@ import java.io.Serializable;
 public class ElementDeStock implements Serializable {
     private String refProduit;
     private int quantite;
-
+    
     public ElementDeStock() {}
-
+    
     public ElementDeStock(String refProduit, int quantite) {
         this.refProduit = refProduit;
         this.quantite = quantite;
     }
-
+    
+    // Getters et Setters
     public String getRefProduit() {
         return refProduit;
     }
-
+    
     public void setRefProduit(String refProduit) {
         this.refProduit = refProduit;
     }
-
+    
     public int getQuantite() {
         return quantite;
     }
-
+    
     public void setQuantite(int quantite) {
         this.quantite = quantite;
     }
-
+    
+    // Pour la gestion des stocks
     public void ajouterQuantite(int quantite) {
         this.quantite += quantite;
     }

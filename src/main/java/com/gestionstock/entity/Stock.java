@@ -1,40 +1,70 @@
 package com.gestionstock.entity;
 
 import jakarta.persistence.*;
-import java.io.Serializable;
+import java.util.Date;
 
 @Entity
-public class Stock implements Serializable {
+@Table(name = "stocks")
+public class Stock {
     @Id
-    private String nom;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
     
-    @Convert(converter = ListeDeStockConverter.class)
-    @Column(columnDefinition = "TEXT")
-    private ListeDeStock listeDeStock;
+    @ManyToOne
+    @JoinColumn(name = "produit_reference", nullable = false)
+    private Produit produit;
     
-    public Stock() {
-        this.listeDeStock = new ListeDeStock();
-    }
+    @Column(nullable = false)
+    private int quantite;
     
-    public Stock(String nom) {
-        this.nom = nom;
-        this.listeDeStock = new ListeDeStock();
-    }
+    @Column(nullable = false)
+    private String type;
+    
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(nullable = false)
+    private Date date;
+    
+    // Constructeurs
+    public Stock() {}
     
     // Getters et Setters
-    public String getNom() {
-        return nom;
+    public Long getId() {
+        return id;
     }
     
-    public void setNom(String nom) {
-        this.nom = nom;
+    public void setId(Long id) {
+        this.id = id;
     }
     
-    public ListeDeStock getListeDeStock() {
-        return listeDeStock;
+    public Produit getProduit() {
+        return produit;
     }
     
-    public void setListeDeStock(ListeDeStock listeDeStock) {
-        this.listeDeStock = listeDeStock;
+    public void setProduit(Produit produit) {
+        this.produit = produit;
+    }
+    
+    public int getQuantite() {
+        return quantite;
+    }
+    
+    public void setQuantite(int quantite) {
+        this.quantite = quantite;
+    }
+    
+    public String getType() {
+        return type;
+    }
+    
+    public void setType(String type) {
+        this.type = type;
+    }
+    
+    public Date getDate() {
+        return date;
+    }
+    
+    public void setDate(Date date) {
+        this.date = date;
     }
 } 

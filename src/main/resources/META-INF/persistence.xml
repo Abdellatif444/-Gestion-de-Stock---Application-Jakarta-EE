@@ -8,14 +8,11 @@
         <class>com.gestionstock.entity.Produit</class>
         <class>com.gestionstock.entity.Stock</class>
         <class>com.gestionstock.entity.Utilisateur</class>
-        <class>com.gestionstock.entity.ElementDeStock</class>
-        <class>com.gestionstock.entity.ListeDeStock</class>
         <properties>
             <property name="jakarta.persistence.schema-generation.database.action" value="create"/>
             <property name="jakarta.persistence.sql-load-script-source" value="META-INF/sql/data.sql"/>
             <property name="eclipselink.logging.level" value="FINE"/>
             <property name="eclipselink.logging.parameters" value="true"/>
-            <property name="eclipselink.ddl-generation.output-mode" value="database"/>
         </properties>
     </persistence-unit>
 </persistence> 
